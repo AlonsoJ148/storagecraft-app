@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorageCraft - Reportes de Inventario</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Librería Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        h1, h2, h3, .navbar-brand { font-family: 'Press Start 2P', cursive; }
+        .navbar-brand { font-size: 1.2rem; text-transform: uppercase; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+    <!-- Menú compartido -->
+    <div th:replace="~{fragmentos/navbar :: menu}"></div>
+
+    <div class="container mt-4">
+        <h1 class="h2 mb-4 text-info">Reportes: Inventario y Ocupación</h1>
+
+        <div class="row g-4 mb-4">
+            <!-- 1. Barras -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 shadow-sm bg-dark text-white">
+                    <h5 class="text-center text-success mb-3">Distribución por Categorías (Barras)</h5>
+                    <canvas id="graficoBarras" style="max-height: 260px;"></canvas>
+                </div>
+            </div>
+            <!-- 2. Circular -->
+            <div class="col-12 col-lg-6">
+                <div class="card p-3 shadow-sm bg-dark text-white">
+                    <h5 class="text-center text-warning mb-3">Ocupación de Cofres (Círculo)</h5>
+                    <canvas id="graficoCirculo" style="max-height: 260px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Barras
+        new Chart(document.getElementById('graficoBarras'), {
+            type: 'bar',
+            data: {
+                labels: ['Minerales', 'Bloques', 'Redstone', 'Herramientas'],
+                datasets: [{
+                    label: 'Unidades',
+                    data: [5780, 15360, 3072, 850],
+                    backgroundColor: ['#198754', '#0d6efd', '#dc3545', '#ffc107']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+
+        // 2. Circular (Doughnut)
+        new Chart(document.getElementById('graficoCirculo'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Cofres Ocupados (84)', 'Disponibles (36)'],
+                datasets: [{
+                    data: [70, 30],
+                    backgroundColor: ['#dc3545', '#198754']
+                }]
+            },
+            options: { responsive: true }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

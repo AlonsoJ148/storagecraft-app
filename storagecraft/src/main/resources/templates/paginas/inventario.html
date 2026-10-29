@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorageCraft - Inventario</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        h1, h2, h3, .navbar-brand { font-family: 'Press Start 2P', cursive; }
+        .navbar-brand { font-size: 1.2rem; text-transform: uppercase; }
+        .btn-retro { font-family: 'Press Start 2P', cursive; font-size: 0.75rem; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+    <!-- Barra de navegación -->
+    <div th:replace="~{fragmentos/navbar :: menu}"></div>
+
+    <div class="container mt-4">
+        <!-- Alerta de Error: Límite excedido -->
+        <div th:if="${errorCapacidad}" class="alert alert-danger alert-dismissible fade show border-danger border-2" role="alert">
+            <strong class="font-monospace">Capacidad Excedida:</strong> <span th:text="${errorCapacidad}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Alerta de Éxito -->
+        <div th:if="${exito}" class="alert alert-success alert-dismissible fade show border-success border-2" role="alert">
+            <span th:text="${exito}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <!-- Encabezado con botón que abre el modal -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">Manipulación de Inventario</h1>
+            <button type="button" class="btn btn-success btn-retro" data-bs-toggle="modal" data-bs-target="#modalRegistrar">
+                + Registrar Ítem
+            </button>
+        </div>
+
+        <!-- 1. Buscador funcional -->
+        <form th:action="@{/items}" method="get" class="row g-2 mb-4">
+            <div class="col-md-9">
+                <input type="text" 
+                       name="criterio" 
+                       th:value="${criterio}" 
+                       class="form-control" 
+                       placeholder="Buscar ítem por nombre o categoría...">
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100 btn-retro">Buscar</button>
+            </div>
+        </form>
+
+        <!-- 2. Tabla conectada al Service -->
+        <div class="card shadow-sm border-0">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover table-striped mb-0 align-middle">
+                    <thead>
+                        <tr>
+                            <th>Ítem</th>
+                            <th>Categoría</th>
+                            <th>Ubicación</th>
+                            <th>Cantidad Total</th>
+                            <th class="text-center">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="it : ${items}">
+                            <td class="fw-bold" th:text="${it.nombre}"></td>
+                            <td><span class="badge bg-primary" th:text="${it.categoria}"></span></td>
+                            <td th:text="${it.cofreUbicacion}"></td>
+                            <td th:text="${#numbers.formatInteger(it.cantidad, 1, 'POINT')}"></td>
+                            <td class="text-center">
+                                <a th:href="@{/items/eliminar/{id}(id=${it.id})}" 
+                                   class="btn btn-sm btn-outline-danger" 
+                                   onclick="return confirm('¿Seguro de remover este material?');">
+                                    Eliminar
+                                </a>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(items)}">
+                            <td colspan="5" class="text-center text-muted py-4">No se hallaron ítems en el almacén.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Modal para registrar nuevos ítems -->
+    <div class="modal fade" id="modalRegistrar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-dark text-white border-success">
+                <div class="modal-header border-success">
+                    <h5 class="modal-title text-success">Registrar Nuevo Material</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/items/guardar}" th:object="${nuevoItem}" method="post">
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label class="form-label">Nombre del Ítem</label>
+                            <input type="text" class="form-control" th:field="*{nombre}" required placeholder="Ej: Esmeralda">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Categoría</label>
+                            <select class="form-select" th:field="*{categoria}">
+                                <option value="Minerales">Minerales</option>
+                                <option value="Bloques">Bloques</option>
+                                <option value="Redstone">Redstone</option>
+                                <option value="Herramientas">Herramientas</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted">Cantidad</label>
+                            <input type="number" 
+                                class="form-control" 
+                                th:field="*{cantidad}" 
+                                min="1" 
+                                max="3456" 
+                                required 
+                                placeholder="Máximo 3,456 por cofre (54 slots)">
+                            <div class="form-text text-secondary">
+                                Tope técnico por cofre doble: 54 ranuras &times; 64 unidades = 3,456 ítems.
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" th:field="*{cofreUbicacion}" required placeholder="Pasillo A - Cofre #08">
+                        </div>
+                    </div>
+                    <div class="modal-footer border-dark">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="submit" class="btn btn-success btn-retro">Guardar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bundle con Popper necesario para que abra el modal -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

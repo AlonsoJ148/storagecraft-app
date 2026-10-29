@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark" 
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorageCraft - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Librería Chart.js para las métricas -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        h1, h2, h3, .navbar-brand { font-family: 'Press Start 2P', cursive; }
+        .navbar-brand { font-size: 1.2rem; text-transform: uppercase; }
+        .btn-retro { font-family: 'Press Start 2P', cursive; font-size: 0.75rem; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+    <!-- Menú compartido (incluye el modal de inicio de sesión) -->
+    <div th:replace="~{fragmentos/navbar :: menu}"></div>
+
+    <div class="container mt-4">
+        <!-- Encabezado con estado del servidor -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 text-success">Panel Central del Almacén</h1>
+            <span class="badge bg-success p-2 font-monospace">● SERVIDOR ONLINE (20.0 TPS)</span>
+        </div>
+
+        <!-- SECCIÓN DE SEGURIDAD: Estado de autenticación del usuario -->
+        <!-- 1. Visible SOLO para invitados (sin sesión iniciada) -->
+        <div sec:authorize="!isAuthenticated()" class="alert alert-secondary bg-dark border-secondary text-white d-flex justify-content-between align-items-center mb-4 shadow-sm">
+            <div>
+                <span class="badge bg-secondary me-2">Modo Consulta</span>
+                <span>Estás navegando como <strong>Invitado (Solo Lectura)</strong>. Para registrar o modificar ítems, inicia sesión.</span>
+            </div>
+            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuth">
+                Iniciar Sesión
+            </button>
+        </div>
+
+        <!-- 2. Visible SOLO para usuarios autenticados -->
+        <div sec:authorize="isAuthenticated()" class="alert alert-dark border-success text-white d-flex justify-content-between align-items-center mb-4 shadow-sm">
+            <div>
+                <span class="badge bg-success me-2">Conectado</span>
+                <span>Bienvenido, operador <strong class="text-success" sec:authentication="name"></strong>. Rango asignado: <span class="badge bg-primary" sec:authentication="principal.authorities"></span></span>
+            </div>
+            <span class="text-muted small">Privilegios activos para modificar el inventario</span>
+        </div>
+
+        <!-- Tarjetas de métricas rápidas -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card bg-dark text-white p-3 border-start border-primary border-4 shadow-sm">
+                    <small class="text-muted">Total Ítems en Almacén</small>
+                    <h3 class="mt-2 text-primary">24,208</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark text-white p-3 border-start border-success border-4 shadow-sm">
+                    <small class="text-muted">Cofres Ocupados</small>
+                    <h3 class="mt-2 text-success">84 / 120</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark text-white p-3 border-start border-warning border-4 shadow-sm">
+                    <small class="text-muted">Capacidad Ocupada</small>
+                    <h3 class="mt-2 text-warning">70.0%</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-dark text-white p-3 border-start border-danger border-4 shadow-sm">
+                    <small class="text-muted">Mecanismos en Riesgo</small>
+                    <h3 class="mt-2 text-danger">0 Alertas</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN: Estado del Servidor en Gráficos -->
+        <div class="row g-4 mb-5">
+            <!-- 1. Estabilidad de Ticks (TPS) -->
+            <div class="col-12 col-lg-8">
+                <div class="card bg-dark text-white p-3 shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-info m-0">Rendimiento en Tiempo Real (TPS & MSPT)</h5>
+                        <span class="badge bg-secondary">Óptimo: 20 TPS</span>
+                    </div>
+                    <canvas id="graficoTPS" style="max-height: 250px;"></canvas>
+                </div>
+            </div>
+
+            <!-- 2. Consumo de Memoria RAM del Servidor -->
+            <div class="col-12 col-lg-4">
+                <div class="card bg-dark text-white p-3 shadow-sm h-100">
+                    <h5 class="text-center text-warning mb-2">Uso de RAM Dedicada</h5>
+                    <canvas id="graficoRAM" style="max-height: 210px;"></canvas>
+                    <div class="text-center mt-2">
+                        <small class="text-muted">Asignada: <strong>8 GB</strong> | Libre: <strong>3.2 GB</strong></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts de Chart.js para el Dashboard -->
+    <script>
+        // 1. Gráfico de TPS histórico reciente
+        const ctxTPS = document.getElementById('graficoTPS');
+        new Chart(ctxTPS, {
+            type: 'line',
+            data: {
+                labels: ['18:20', '18:22', '18:24', '18:26', '18:28', '18:30'],
+                datasets: [
+                    {
+                        label: 'TPS (Ticks Por Segundo)',
+                        data: [20.0, 19.9, 20.0, 19.8, 20.0, 20.0],
+                        borderColor: '#198754',
+                        backgroundColor: 'rgba(25, 135, 84, 0.15)',
+                        tension: 0.2,
+                        fill: true,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Entidades Activas en Almacén',
+                        data: [120, 145, 130, 210, 150, 128],
+                        borderColor: '#ffc107',
+                        borderDash: [5, 5],
+                        tension: 0.2,
+                        fill: false,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        min: 15,
+                        max: 20.5,
+                        title: { display: true, text: 'TPS', color: '#198754' }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Entidades Sueltas', color: '#ffc107' }
+                    }
+                }
+            }
+        });
+
+        // 2. Gráfico de Consumo de RAM
+        const ctxRAM = document.getElementById('graficoRAM');
+        new Chart(ctxRAM, {
+            type: 'doughnut',
+            data: {
+                labels: ['RAM Usada (4.8 GB)', 'RAM Libre (3.2 GB)'],
+                datasets: [{
+                    data: [60, 40],
+                    backgroundColor: ['#0d6efd', '#212529'],
+                    borderColor: ['#0d6efd', '#495057'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

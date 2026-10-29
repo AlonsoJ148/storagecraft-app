@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<body>
+<nav th:fragment="menu" class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom border-success border-3 mb-4">
+    <div class="container-fluid">
+        <a class="navbar-brand text-success fw-bold" th:href="@{/}">StorageCraft</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <!-- Enlaces del menú principal -->
+            <ul class="navbar-nav me-auto">
+            <!-- 1. Inicio / Dashboard -->
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/}">Dashboard</a>
+            </li>
+            
+            <!-- 2. Catálogo de Ítems (Listado y formulario) -->
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/items}">Catálogo Ítems</a>
+            </li>
+            
+            <!-- 3. Búsqueda y Filtro de Materiales -->
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/items/consultar}">Búsqueda y Filtro</a>
+            </li>
+            
+            <!-- 4. Dispositivos de Redstone -->
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/dispositivos}">Dispositivos</a>
+            </li>
+            
+            <!-- 5. Historial de Transacciones -->
+            <li class="nav-item">
+                <a class="nav-link" th:href="@{/transacciones}">Historial</a>
+            </li>
+            
+            <!-- 6. Menú Desplegable de Gráficos (Reportes) -->
+            <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle text-info" href="#" id="dropReportes" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    Reportes Gráficos
+                </a>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li><a class="dropdown-item" th:href="@{/reportes/inventario}">Barras y Círculo</a></li>
+                    <li><a class="dropdown-item" th:href="@{/reportes/movimientos}">Gráfico Lineal</a></li>
+                </ul>
+            </li>
+        </ul>
+
+            <!-- Control de Autenticación en la Barra Superior -->
+            <div class="d-flex align-items-center gap-2">
+                <!-- 1. Si NO ha iniciado sesión: Muestra el botón para abrir la ventana modal -->
+                <div sec:authorize="!isAuthenticated()">
+                    <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuth">
+                        Iniciar Sesión
+                    </button>
+                </div>
+
+                <!-- 2. Si YA inició sesión: Muestra el nombre del jugador y botón para Salir -->
+                <div sec:authorize="isAuthenticated()" class="d-flex align-items-center gap-2">
+                    <span class="text-light small">
+                        Jugador: <strong class="text-success" sec:authentication="name"></strong>
+                    </span>
+                    <form th:action="@{/logout}" method="post" class="m-0">
+                        <button type="submit" class="btn btn-danger btn-sm">Salir</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VENTANA MODAL (INICIAR SESIÓN / CREAR CUENTA) -->
+    <div class="modal fade" id="modalAuth" tabindex="-1" aria-labelledby="modalAuthLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content bg-dark text-white border-success shadow-lg">
+                
+                <div class="modal-header border-secondary pb-0">
+                    <!-- Pestañas de Navegación dentro del Modal -->
+                    <ul class="nav nav-tabs border-0 w-100" id="authTab" role="tablist">
+                        <li class="nav-item w-50 text-center" role="presentation">
+                            <button class="nav-link active w-100 text-light fw-bold" id="login-tab" data-bs-toggle="tab" data-bs-target="#tabLogin" type="button" role="tab" aria-selected="true">
+                                Iniciar Sesión
+                            </button>
+                        </li>
+                        <li class="nav-item w-50 text-center" role="presentation">
+                            <button class="nav-link w-100 text-light fw-bold" id="registro-tab" data-bs-toggle="tab" data-bs-target="#tabRegistro" type="button" role="tab" aria-selected="false">
+                                Crear Cuenta
+                            </button>
+                        </li>
+                    </ul>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body p-4">
+                    <div class="tab-content" id="authTabContent">
+                        
+                        <!-- PESTAÑA 1: INICIAR SESIÓN -->
+                        <div class="tab-pane fade show active" id="tabLogin" role="tabpanel" aria-labelledby="login-tab">
+                            <form th:action="@{/login}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Nombre de Usuario / Jugador</label>
+                                    <input type="text" name="username" class="form-control bg-secondary text-white border-0" placeholder="Ej: Steve o Alex" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Contraseña</label>
+                                    <input type="password" name="password" class="form-control bg-secondary text-white border-0" placeholder="••••••••" required>
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-success fw-bold">Entrar al Almacén</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- PESTAÑA 2: CREAR CUENTA -->
+                        <div class="tab-pane fade" id="tabRegistro" role="tabpanel" aria-labelledby="registro-tab">
+                            <form th:action="@{/registro}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Nombre de Jugador</label>
+                                    <input type="text" name="username" class="form-control bg-secondary text-white border-0" placeholder="Ej: NuevoOperador" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Rango / Permisos</label>
+                                    <select name="rango" class="form-select bg-secondary text-white border-0">
+                                        <option value="JUGADOR">Jugador (Operaciones estándar)</option>
+                                        <option value="OPERADOR">Operador (Control total y Redstone)</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label text-secondary small">Contraseña</label>
+                                    <input type="password" name="password" class="form-control bg-secondary text-white border-0" placeholder="Crea tu contraseña" required>
+                                </div>
+                                <div class="d-grid mt-4">
+                                    <button type="submit" class="btn btn-primary fw-bold">Registrar Cuenta</button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</nav>
+</body>
+</html>
